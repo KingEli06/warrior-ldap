@@ -1,0 +1,64 @@
+# Global settings
+global:
+  domain: example.com
+  organization: My Organization
+
+# OpenLDAP configuration
+openldap:
+  enabled: true
+  image:
+    repository: osixia/openldap
+    tag: 1.5.0
+    pullPolicy: IfNotPresent
+  adminPassword: "admin"
+  configPassword: "config"
+  persistence:
+    enabled: true
+    size: 8Gi
+    storageClass: ""
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "300m"
+    limits:
+      memory: "1Gi"
+      cpu: "500m"
+  env:
+    LDAP_ORGANISATION: "{{ .Values.global.organization }}"
+    LDAP_DOMAIN: "{{ .Values.global.domain }}"
+    LDAP_BASE_DN: "dc={{ .Values.global.domain | replace \".\" \",dc=\" }}"
+    LDAP_TLS: "false"
+
+# phpLDAPadmin configuration
+phpldapadmin:
+  enabled: true
+  image:
+    repository: osixia/phpldapadmin
+    tag: 0.9.0
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 80
+  ingress:
+    enabled: false
+    className: ""
+    annotations: {}
+    hosts:
+      - host: phpldapadmin.local
+        paths:
+          - path: /
+            pathType: ImplementationSpecific
+    tls: []
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "100m"
+    limits:
+      memory: "512Mi"
+      cpu: "200m"
+  config:
+    hide_template_warning: true
+    server_host: "openldap"
+    server_port: 389
+    server_base: "dc={{ .Values.global.domain | replace \".\" \",dc=\" }}"
+    login_bind_id: "cn=admin,dc={{ .Values.global.domain | replace \".\" \",dc=\" }}"

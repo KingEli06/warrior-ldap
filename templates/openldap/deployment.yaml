@@ -1,0 +1,65 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "openldap-phpldapadmin.fullname" . }}-openldap
+  labels:
+    {{- include "openldap-phpldapadmin.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "openldap-phpldapadmin.selectorLabels" . | nindent 6 }}
+      component: openldap
+  template:
+    metadata:
+      labels:
+        {{- include "openldap-phpldapadmin.selectorLabels" . | nindent 8 }}
+        component: openldap
+    spec:
+      containers:
+      - name: openldap
+        image: "{{ .Values.openldap.image.repository }}:{{ .Values.openldap.image.tag }}"
+        imagePullPolicy: {{ .Values.openldap.image.pullPolicy }}
+        env:
+        - name: LDAP_ORGANISATION
+          value: "{{ .Values.openldap.env.LDAP_ORGANISATION }}"
+        - name: LDAP_DOMAIN
+          value: "{{ .Values.openldap.env.LDAP_DOMAIN }}"
+        - name: LDAP_BASE_DN
+          value: "{{ .Values.openldap.env.LDAP_BASE_DN }}"
+        - name: LDAP_ADMIN_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "openldap-phpldapadmin.fullname" . }}-openldap-secrets
+              key: LDAP_ADMIN_PASSWORD
+        - name: LDAP_CONFIG_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "openldap-phpldapadmin.fullname" . }}-openldap-secrets
+              key: LDAP_CONFIG_PASSWORD
+        - name: LDAP_TLS
+          value: "{{ .Values.openldap.env.LDAP_TLS }}"
+        ports:
+        - containerPort: 389
+          name: ldap
+        - containerPort: 636
+          name: ldaps
+        volumeMounts:
+        - name: ldap-data
+          mountPath: /var/lib/ldap
+        - name: ldap-config
+          mountPath: /etc/ldap/slapd.d
+        - name: ldap-configmap
+          mountPath: /container/service/slapd/assets/config/bootstrap/ldif/custom
+        resources:
+          {{- toYaml .Values.openldap.resources | nindent 10 }}
+      volumes:
+      - name: ldap-data
+        persistentVolumeClaim:
+          claimName: {{ include "openldap-phpldapadmin.fullname" . }}-openldap-data
+      - name: ldap-config
+        persistentVolumeClaim:
+          claimName: {{ include "openldap-phpldapadmin.fullname" . }}-openldap-config
+      - name: ldap-configmap
+        configMap:
+          name: {{ include "openldap-phpldapadmin.fullname" . }}-openldap-config
