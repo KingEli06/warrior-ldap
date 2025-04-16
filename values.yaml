@@ -62,3 +62,21 @@ phpldapadmin:
     server_port: 389
     server_base: "dc={{ .Values.global.domain | replace \".\" \",dc=\" }}"
     login_bind_id: "cn=admin,dc={{ .Values.global.domain | replace \".\" \",dc=\" }}"
+  phpldapadmin:
+  ingress:
+    enabled: true
+    className: "nginx"  # or your ingress controller class
+    annotations:
+      nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
+      nginx.ingress.kubernetes.io/ssl-redirect: "true"
+      cert-manager.io/cluster-issuer: "letsencrypt-prod"  # if using cert-manager
+    hosts:
+      - host: ldap-admin.yourdomain.com
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: phpldapadmin-tls
+        hosts:
+          - ldap-admin.yourdomain.com
+
